@@ -100,11 +100,13 @@ a PostgreSQL database with PostGIS and some example data will be available. To c
 
 You need an installed and _running_ docker service. For example [Docker Desktop Windows](https://docs.docker.com/desktop/install/windows-install/).
 
-You need to update the following lines in your `.env` or `.env.dev` file:
+You need to update the following lines in your `.env` or `.env.dev` file to match the setup in the `docker-compose.yml`. `username`, `password` and `database` have to match the environment variables `POSTGRES_PASSWORD`, `POSTGRES_USER` and `POSTGRES_DB` set in that file. `host` is set to the name of the db container (`db`):
 
 ```bash
-db_postgres_host: db
-db_postgres_password: geobakery
+geospatial_analyzer_db_host: db
+geospatial_analyzer_db_password: geobakery
+geospatial_analyzer_db_username: postgres
+geospatial_analyzer_db_database: postgres
 ```
 
 This will ensure that the database is accessed from the docker network and not from your local storage. By default, the name of the service becomes the hostname/address of the container within the Docker network.
