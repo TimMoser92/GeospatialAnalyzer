@@ -3,7 +3,7 @@ name: Build and Push Docker image
 on:
   push:
     tags:
-      - '*'
+      - 'workflow_dispatch'
 
 jobs:
   build-and-push:
@@ -25,3 +25,9 @@ jobs:
 
       - name: Push Docker image
         run: docker push ghcr.io/${{ github.repository }}:${GITHUB_REF_NAME}
+
+      - name: Build Docker Database hardrestore image
+        run: docker build -f ./sql/Dockerfile-hardrestore-without-extensions -t ghcr.io/${{ github.repository }}/db-hardrestore:${GITHUB_REF_NAME} sql/
+
+      - name: Push Docker Database hardrestore image
+        run: docker push ghcr.io/${{ github.repository }}/db-hardrestore:${GITHUB_REF_NAME}
