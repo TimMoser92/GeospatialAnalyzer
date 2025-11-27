@@ -12,6 +12,33 @@ import { ValuesAtPointModule } from './values-at-point/values-at-point.module';
 import { WithinModule } from './within/within.module';
 import { TopicsModule } from './topics/topics.module';
 
+function processEnvVar(varName: string, conditions?: { required?: boolean, defaultValue?: any, transformer?: (v: any) => any }): any {
+  let value: any = process.env[varName];
+
+  const hasDefaultValue = conditions?.defaultValue !== undefined
+  const { required = !hasDefaultValue, defaultValue, transformer } = conditions || {};
+
+  if (value === undefined) {
+    if (required) {
+      console.error(`Required environment variable ${varName} is missing.`);
+      process.exit(0);
+    }
+    else {
+      if (defaultValue === undefined) {
+        console.warn(`Environment variable ${varName} is missing.`);
+        return undefined;
+      }
+      else {
+        console.warn(`Environment variable ${varName} is missing. Using default value ${defaultValue}.`);
+        return defaultValue;
+      }
+    }
+  }
+  else {
+    return transformer ? transformer(value) : value;
+  }
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -20,38 +47,23 @@ import { TopicsModule } from './topics/topics.module';
       isGlobal: true,
     }),
     TypeOrmModule.forRoot({
-      type: process.env.GEOSPATIAL_ANALYZER_DB_TYPE,
-      host: process.env.GEOSPATIAL_ANALYZER_DB_HOST,
-      port: process.env.GEOSPATIAL_ANALYZER_DB_PORT,
-      username: process.env.GEOSPATIAL_ANALYZER_DB_USERNAME,
-      password: process.env.GEOSPATIAL_ANALYZER_DB_PASSWORD,
-      database: process.env.GEOSPATIAL_ANALYZER_DB_DATABASE,
-      connectTimeoutMS: process.env.GEOSPATIAL_ANALYZER_CONNECT_TIMEOUT_MS
-        ? Number(process.env.GEOSPATIAL_ANALYZER_CONNECT_TIMEOUT_MS)
-        : 60000,
+      type: processEnvVar("GEOSPATIAL_ANALYZER_DB_TYPE"),
+      host: processEnvVar("GEOSPATIAL_ANALYZER_DB_HOST"),
+      port: processEnvVar("GEOSPATIAL_ANALYZER_DB_PORT"),
+      username: processEnvVar("GEOSPATIAL_ANALYZER_DB_USERNAME"),
+      password: processEnvVar("GEOSPATIAL_ANALYZER_DB_PASSWORD"),
+      database: processEnvVar("GEOSPATIAL_ANALYZER_DB_DATABASE"),
+      connectTimeoutMS: processEnvVar("GEOSPATIAL_ANALYZER_CONNECT_TIMEOUT_MS", { defaultValue: 60000, transformer: Number }),
       //use JSON.parse to ensure boolean expressions
-      synchronize: JSON.parse(process.env.GEOSPATIAL_ANALYZER_DB_SYNCHRONIZE),
-      logging: JSON.parse(process.env.GEOSPATIAL_ANALYZER_DB_LOGGING),
+      synchronize: processEnvVar("GEOSPATIAL_ANALYZER_DB_SYNCHRONIZE", { defaultValue: false, transformer: JSON.parse }),
+      logging: processEnvVar("GEOSPATIAL_ANALYZER_DB_LOGGING", { defaultValue: true, transformer: JSON.parse }),
       subscribers: [],
       migrations: [],
       extra: {
-        statement_timeout: process.env.statement_timeout
-          ? Number(process.env.GEOSPATIAL_ANALYZER_STATEMENT_TIMEOUT_MS)
-          : 30000, // number of milliseconds before a statement in query will time out, default is no timeout
-        query_timeout: process.env.GEOSPATIAL_ANALYZER_QUERY_TIMEOUT_MS
-          ? Number(process.env.GEOSPATIAL_ANALYZER_QUERY_TIMEOUT_MS)
-          : 30000, // number of milliseconds before a query call will timeout, default is no timeout
-        connectionTimeoutMillis: process.env
-          .GEOSPATIAL_ANALYZER_CONNECTION_TIMEOUT_MS
-          ? Number(process.env.GEOSPATIAL_ANALYZER_CONNECTION_TIMEOUT_MS)
-          : 0, // number of milliseconds to wait for connection, default is no timeout
-        idle_in_transaction_session_timeout: process.env
-          .GEOSPATIAL_ANALYZER_IDLE_IN_TRANSACTION_SESSION_TIMOUT
-          ? Number(
-              process.env
-                .GEOSPATIAL_ANALYZER_IDLE_IN_TRANSACTION_SESSION_TIMOUT,
-            )
-          : 0, // number of milliseconds before terminating any session with an open idle transaction, default is no timeout
+        statement_timeout: processEnvVar("GEOSPATIAL_ANALYZER_STATEMENT_TIMEOUT_MS", { defaultValue: 30000, transformer: Number }), // number of milliseconds before a statement in query will time out
+        query_timeout: processEnvVar("GEOSPATIAL_ANALYZER_QUERY_TIMEOUT_MS",  { defaultValue: 30000, transformer: Number }), // number of milliseconds before a query call will timeout
+        connectionTimeoutMillis: processEnvVar("GEOSPATIAL_ANALYZER_CONNECTION_TIMEOUT_MS", { defaultValue: 0, transformer: Number }), // number of milliseconds to wait for connection
+        idle_in_transaction_session_timeout: processEnvVar("GEOSPATIAL_ANALYZER_IDLE_IN_TRANSACTION_SESSION_TIMOUT", { defaultValue: 0, transformer: Number }),// number of milliseconds before terminating any session with an open idle transaction, default is no timeout
       },
     } as TypeOrmModule),
     IntersectModule,
